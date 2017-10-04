@@ -41,9 +41,16 @@
 %Procedure:
 %   Input handling
 %   Calculate information metrics (univariate)
-%   Fit linear models
-%   Fit fixed non-linear models?
+%   Fit models
 %   Compare models via AIC
+
+%FIXME
+%   Non-normal residual distributions bias results
+%   Implement version where residual distribution (rdist) can be specified
+%       Use rdist to estimate likelihood per model
+%       Fit models by maximum likelihood (may need fmincon)
+
+%FIXME make robust to NaNs (fit cannot handle)
 
 function w = ctm_infer(x,y,varargin)
 %Define default parameters
@@ -51,6 +58,7 @@ p.models = 'general';
 p.mim = 'kNN_k';
 p.runinfo = true;
 p.runfits = true;
+p.rdist = 'normal'; %NOT IMPLEMENTED
 
 %Parse inputs
 p = ct_input(varargin, p);
@@ -133,7 +141,7 @@ for s =1:size(mlib,1)  %FOR every model in the library
 end;    w.m = [ts_w, w.m];  %Prepend the Theil-Sen model
 
 
-%% Evaluate evidence ratios by AIC
+%% Evaluate evidence ratios by AIC and BIC
 %Calculate AICc values for all models evaluated
 ns = nnz(~isnan(y));  %Number of valid samples in dataset
 AICc = (2.*[w.m.np] + ns.*log([w.m.sse]./ns) ...
@@ -147,8 +155,19 @@ Awt = num2cell(Awt); ER = num2cell(ER);
 [w.m(:).aicwt] = deal(Awt{:});
 [w.m(:).evrat] = deal(ER{:});
 
+%Calculate BIC
+BIC = (log(ns).*[w.m.np] + ns.*log([w.m.sse]./ns))';
+dBIC = BIC - min(BIC);                  %delta BIC
+Bwt = exp(-dBIC/2)./sum(exp(-dBIC/2));  %BIC weight
+BER = Bwt./max(Bwt);                     %BIC evidence ratio
+%   Assign BIC weights and ratios to output
+Bwt = num2cell(Bwt); BER = num2cell(BER);
+[w.m(:).bicwt] = deal(Bwt{:});
+[w.m(:).bevrat] = deal(BER{:});
+
 w.msum = @(x)[[{'#'},num2cell(1:numel(x))]',{'Model',x.name}', ...
-    {'SSE',x.sse}', {'np',x.np}', {'AICwt',x.aicwt}', {'EvRat',x.evrat}'];
+    {'SSE',x.sse}', {'np',x.np}', {'AICwt',x.aicwt}', {'EvRat',x.evrat}', ...
+    {'BICwt',x.bicwt}', {'BEvRat',x.bevrat}'];
 
 end
 

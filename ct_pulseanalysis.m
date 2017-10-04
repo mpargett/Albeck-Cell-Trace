@@ -54,7 +54,8 @@ if isempty(p.trange); p.trange = [ones(nct,1), cellfun('length',d(:))]; end
 %Pre-allocate common items
 xfp = {'last','first'}; %Set up to loop for pre- and post- peak regions
 z = struct('tracktimes', [], 'pkpos', cell(nct,1), 'mpos',[], 'rise',[], ...
-    'fall',[], 'dur',[], 'peak',[], 'mean',[], 'amp_peak',[], 'amp_mean',[]);
+    'fall',[], 'dur',[], 'peak',[], 'mean',[], 'amp_peak',[], ...
+    'amp_mean',[], 'fwhm',[]);
 for q = 1:nct  %FOR each cell trace
     dt = d{q}(:);
     
@@ -69,7 +70,7 @@ for q = 1:nct  %FOR each cell trace
     hv = nan(np,1); lv = zeros(np,2);
     z(q) = struct('tracktimes', p.trange(q,:), 'pkpos', hv, 'mpos', ...
         hv, 'rise',hv, 'fall',hv, 'dur',hv, 'peak',hv, 'mean', ...
-        hv, 'amp_peak',hv, 'amp_mean',hv);
+        hv, 'amp_peak',hv, 'amp_mean',hv, 'fwhm',hv);
     for s = 1:np  %FOR each pulse
         %High value is mean over peak area (excluding min 2 values)
         if pks(s,2) - pks(s,1) < 1; hv(s) = dt(pks(s,1)); %If 1 pnt, use it
@@ -135,6 +136,14 @@ for q = 1:nct  %FOR each cell trace
         %Mean Signal and Amplitude
         z(q).mean(s) = nanmean(dt(r_nd:f_st));
         z(q).amp_mean(s) = z(q).mean(s) - lv(s,1);
+        % FWHM
+        fwhm_thresh = dt(r_st) + z(q).amp_mean(s)./2;
+        if fwhm_thresh > dt(r_nd)
+            fwhm_thresh = (dt(r_nd) - dt(r_st))./2;        end
+        fwhm_st = r_st + find(dt(r_st:r_nd) > fwhm_thresh,1,'first') - 1;
+        fwhm_nd = f_st + find(dt(f_st:f_nd) < fwhm_thresh,1,'first') - 1;
+        if isempty(fwhm_nd); fwhm_nd = f_nd; end
+        z(q).fwhm(s) = fwhm_nd - fwhm_st;
     end
     %Remove NaN-valued indices
     z(q) = structfun(@(x)x(~isnan(x)), z(q), 'UniformOutput', false);
