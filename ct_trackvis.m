@@ -145,7 +145,7 @@ switch lower(type)
         plot(ah, d(end:-1:1,:)', 'LineWidth', p.lw);
         
         %Adjust axis limits and labeling
-        ax = axis(ah);  axis(ah, [0, nTime, ax(3:4)]);
+        axis(ah,'tight');  ax = axis(ah);  axis(ah, [0, nTime, ax(3:4)]);
         if ~p.nolabel;  ylabel(ah, 'Intensity');  xlabel(ah, 'Time'); end
         
     case 'mean' % --Plots the mean and 25th, 75th quantiles over time--
@@ -160,7 +160,7 @@ switch lower(type)
         plot(ah, mtrace,  'Color', mqclr, 'LineWidth', p.lw+2); %Mean
         
         %Adjust axis limits and labeling
-        ax = axis(ah);  axis(ah, [0, nTime, ax(3:4)]);
+        axis(ah,'tight');  ax = axis(ah);  axis(ah, [0, nTime, ax(3:4)]);
         if ~p.nolabel;  ylabel(ah, 'Intensity');  xlabel(ah, 'Time');  end
         
     case 'histogram' % --Generates a time-lapse histogram (color-scaled)--
@@ -202,7 +202,6 @@ switch lower(type)
         ct_trackvis(ah(3), 'heatmap', d, varargin{4:end}, 'nolabel', true);
         
         %Adjust axes, labeling, etc.
-        axis(ah(1:2),'tight');
         ylabel(ah(1), 'Intensity');  %title(ah(1), 'Title');
         ylabel(ah(2), 'Intensity');
         xlabel(ah(3), 'Time');  ylabel(ah(3), 'Cell Track');

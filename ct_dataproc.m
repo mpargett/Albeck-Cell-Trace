@@ -4,29 +4,26 @@
 %   user-defined, or selected from commonly used reporter models.
 %   
 %   [d,p] = ct_dataproc(fname, ...)
-%   
-%   Will deliver outputs d, the prepared data (a structure with fields
-%   'cellindex', and 'data'), and p, the parameters associated (as a
-%   structure with fields 'savename', 'inrep', 'outrep', 'tsamp')
+%       delivers outputs d, the prepared data (a structure with fields
+%   'cellindex', 'data', and 'linfo' if present), and p, the parameters
+%   associated. 
 %
 %   Parameters may be provided as name, value pairs, as in
 %   [d,p] = ct_dataproc(fname, name1, value1, name2, value2, ...)
 %   
-%   savename - cell array of names under which to save processed data
-%   name - cell array of names of channels ({'c1','c2'})
-%   ind - cell array in indices from valcube to use for each channel
-%       ({[1,2], 4})
-%   fun - cell array of functions to apply to each channel
-%   tsamp - sampling period (not actually used)
-%   pwrat - power ratio for FRET channel conversion
-%   gapmax - maximum number of bad time points to bridge
-%   dlegnthmin - minimum length of an acceptable trace
-%   startonly - TRUE to only keep tracks that begin at the start of imaging
-%   packascell - TRUE to return data with NaNs removed as a cell array
-%       (depricated), FALSE will return each channel as a NaN-padded 
-%       cells x time array 
-%   stripidx - TRUE to remove cell and time indexing from data, returning
-%       only the processed traces
+%   savename    - cell array of names under which to save processed data
+%   name        - cell array of names of channels ({'c1','c2'})
+%   ind         - cell array in indices from valcube to use for each
+%                channel ({[1,2], 4})
+%   fun         - cell array of functions to apply to each channel
+%   tsamp       - sampling period (not actually used)
+%   pwrat       - power ratio for FRET channel conversion
+%   gapmax      - maximum number of bad time points to bridge
+%   dlegnthmin  - minimum length of an acceptable trace
+%   startonly   - TRUE to only keep tracks that begin at the start of imaging
+%   packascell  - TRUE to return data with NaNs removed as a cell array
+%                (depricated), FALSE will return each channel as a
+%                NaN-padded  cells x time array 
 
 function [d,p] = ct_dataproc(fname, varargin)
 
@@ -73,9 +70,15 @@ for s = 1:length(fname)
         warning('CT:DATAPROC',['Invalid filename encountered.  ',...
             'Resulting cell (',num2str(s),') will be empty.']); continue;
     end
-    %Load data
-    td = load(fname{s}, 'vcorder', 'valcube', 'bkg');   rmbkg = false;
+    %Load data - check first if lineage info is present
+    vchk = whos(fname{s});  haslinfo = any(strcmp({vchk.name},'linfo'));
+    if haslinfo     %Collect linfo, if available
+            td = load(fname{s}, 'vcorder', 'valcube', 'bkg', 'linfo');
+    else    td = load(fname{s}, 'vcorder', 'valcube', 'bkg');
+    end;    rmbkg = false;  %Initialize bkg removal as FALSE
+    
     %If note indicates individual channels are raw, allow bkg removal
+    %   Note, this is only included for legacy -raw channels are depricated
     if isfield(td,'vcorder') && ...
        ~isempty(regexpi(td.vcorder{end}, 'indiv.*are[^(no)]*raw'))
    
@@ -111,16 +114,36 @@ for s = 1:length(fname)
                 num2cell(td.bkg(:,chi),1), 'UniformOutput', false);
         end
         %Apply processing function and retain result
-        pd.(p.name{sc}) = p.fun{sc}(intemp{:}); %FIXME add warning/report for too many inputs if null function
+        pd.(p.name{sc}) = p.fun{sc}(intemp{:}); 
     end
     %Run data trimming procedure
     d = ct_trimdata(pd, p);
+    
+    %IF linfo is present, apply trimming index to linfo, append to output
+    if haslinfo
+        %Filter linfo
+        linfo = linfo(d.cellindex,:); 
+        %   Build map to new indices
+        imap = nan(length(d.cellindex),1);          %Initialize 
+        imap(d.cellindex) = 1:nnz(d.cellindex);     %Place new index values
+        %Adjust linfo references
+        for sl = unique(linfo(~isnan(linfo)))'
+            linfo( linfo == sl ) = imap(sl);
+        end
+        %Append linfo to the output
+        d.linfo = linfo;
+    end
     
     %Save data IF filename provided
     if ~isempty(p.savename{s});    save(p.savename{s},'d','p'); end
     
     %Store data from this XY in a cell
-    if p.stripidx; dc{s} = d.data; else dc{s} = d; end
+    dc{s} = d;     %Store data (and indices)
+    %   Index stripping now disallowed
+%     if p.stripidx; dc{s} = d.data;  %Store data
+%         if haslinfo; dc{s}.linfo = d.data.linfo; end    %Include linfo
+%     else dc{s} = d;     %Store data (and indices)
+%     end
 end
 d = dc; %Assign final output
 

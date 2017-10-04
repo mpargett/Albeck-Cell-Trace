@@ -36,7 +36,7 @@
 
 function [pks,vls] = ct_getpeaks(d, narm, varargin)
 %Default settings
-p.min_vy = 0;  p.min_rise = 0;  p.smooth = 0;
+p.min_vy = 0;  p.min_rise = 0;  p.smooth = 0;  p.disp = false;
 
 %Input option pair parsing:
 nin = length(varargin);     %Check for even number of add'l inputs
@@ -69,7 +69,8 @@ ddd = diff(sign(dd)); pks = find(ddd < 0) + 1; vls = find(ddd > 0) + 1;
 
 %Define locality for filtering
 nnd = ~isnan(d);  %Index to avoid NaNs
-nlm = 2*narm+1;  lflt = ones(1, min(floor(nnz(nnd)/3)-1, nlm))./nlm;
+nlm = 2*narm+1;  flt_length = min(floor(nnz(nnd)/3)-1, nlm);
+lflt = ones(1, flt_length)./flt_length;
 if isempty(lflt); pks = []; vls = []; return; end  %Ensure valid length
 %Generate local minimum trace (filtered for smoothness)
 str = strel('line', nlm, 90);  mnv = nan(size(d));  mxv = mnv;  %Initialize
@@ -116,9 +117,12 @@ vls = [imag(pv([isgp(2:end);false])), imag(pv(isgv))];
 
 
 % %Diagnostic plotting (retained for debugging / future development)
-% figure; hold on;   plot(d,'b-'); 
-% plot(pks(:,1), d(pks(:,1)), 'r^');  plot(vls(:,1), d(vls(:,1)), 'ks'); 
-% plot([vly_thresh, min_rise], 'g--');  %plot(fd, 'k--');   
-% plot(pks(:,2), d(pks(:,2)), 'kd');  plot(vls(:,2), d(vls(:,2)), 'ro');
+if p.disp
+    figure; hold on;   plot(d,'b-');
+    plot(pks(:,1), d(pks(:,1)), 'r^');  plot(vls(:,1), d(vls(:,1)), 'ks');
+    plot([vly_thresh, min_rise], 'g--');
+    plot([mnv, mxv], 'r--');
+    plot(pks(:,2), d(pks(:,2)), 'kd');  plot(vls(:,2), d(vls(:,2)), 'ro');
+end
 end
 
