@@ -16,9 +16,10 @@
 %       ang     - nCell x nTime-1 array of cell angular direction 
 %       turn    - nCell x nTime-2 array of cell turning angles
 %       dnet    - vector of net distances traveled per cell
-%       vnet    - vector of net velocity
+%       snet    - vector of net speed
+%       anet    - vector of net angular direction
 %       dtot    - vector of total distance traveled per cell
-%       vtot    - vector of average velocity per cell
+%       stot    - vector of average speed per cell
 %
 %   Parameters:
 %       xysc    - scaling for the X and Y coordinates (e.g. to absolute
