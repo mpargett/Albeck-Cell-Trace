@@ -25,6 +25,7 @@
 %       xysc    - scaling for the X and Y coordinates (e.g. to absolute
 %                   units). xysc may be scalar (scaling both X and Y by the
 %                   same value) or a two element array ([xscale, yscale]). 
+%       tsamp   - sampling time, for velocity scaling to absolute units
 %       xf      - (for post data-proc'ed input), fieldname of X coordinates
 %       yf      - (for post data-proc'ed input), fieldname of Y coordinates
 %       plot    - Logical, TRUE to also plot traces via ct_migrationplot.
@@ -39,10 +40,10 @@
 %   
 %       --- Pre-loading data, with scaling from MetaData
 %   gbl = load('L:\Processed Data\FolderName\Filename_Global.mat');
-%   xysc = [gbl.GMD.cam.ip.bkmd.cam.PixSizeX, ...
-%           gbl.GMD.cam.ip.bkmd.cam.PixSizeY];
+%   xysc = [gbl.GMD.cam.PixSizeX, gbl.GMD.cam.PixSizeY];
+%   tsamp = gbl.GMD.cam.tsamp;
 %   in = load('L:\Processed Data\FolderName\Filename_xy01.mat');
-%   z = ct_migration(in, 'xysc', xysc);
+%   z = ct_migration(in, 'xysc', xysc, 'tsamp', tsamp);
 %
 %       --- Also plot the migration tracks (in desire axes)
 %   figure; ah = axes;
@@ -55,6 +56,7 @@ function z = ct_migration(x, varargin)
 %% Parse parameters 
 %Initialize as default
 p.xysc = 1;     %Spatial scaling parameter (default no scaling)
+p.tsamp = 1;    %Temporal scaling parameter (sampling time)
 p.xf = [];  p.yf = [];  %Fieldnames for data structure X and Y
 p.plot = false;         %Logical to also plot tracks
 p.ploth = [];           %Plotting handle handle
@@ -88,8 +90,8 @@ end
 %% Process input data
 %   Get data size
 nc = size(x,1);
-%Get number of time points per cell
-ntime = sum(~isnan(x(:,:,xi)),2);
+%Get number of time points per cell (or in absolute time units)
+ntime = sum(~isnan(x(:,:,xi)),2).*p.tsamp;
 
 %Scale XY coordinates if indicated
 if numel(p.xysc) == 1     %Same scale for each
