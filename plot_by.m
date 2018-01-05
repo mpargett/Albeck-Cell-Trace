@@ -57,6 +57,8 @@ celltypes = celltypes(~cellfun(@isempty,celltypes)); % discard empty name fields
 cellfn = cellfun(@(x)x{1},regexp(celltypes,'@','split'),'un',0);
 % remove any spaces in name
 cellfn = arrayfun(@(x)regexprep(cellfn{x},'[^a-zA-Z0-9]',''),1:size(cellfn),'un',0);
+% add x to beginning of name starts with number
+cellfn = arrayfun(@(x)regexprep(cellfn{x},'^[\d_]*(\w)','x$0'),1:size(cellfn),'un',0);
 % make list of xys for each celltype
 for s = 1:numel(cellfn)
     %   Assemble list of xys with the current cname
@@ -198,12 +200,13 @@ function [TXX,nrow,ncol] = main_plotting_func(data,channel,segv1,segv2,...
             for sa = 1:numel(segv2) % plot line for each unique treatment/cell
                 xy = intersect(idx.(segv1{s}),idx.(segv2{sa})); % find xy for treatment/celltype
                 % loop through xy
+                firstxy = 0;
                 for sb = 1:length(xy) % plot line for each xy
                     if goodxy(xy(sb))% make sure there is data to plot.
                     % store tx times for each xy for plotting lines later
-                 
+                    firstxy = firstxy + 1;
                     sc = sc+1; % index for saving individual line objects for input to legend.
-                    if sb == 1
+                    if firstxy == 1
                         legvec = [legvec,1]; % identify unique legend entries.
                         txx{sa} = str2double(linetp{...
                             cell2mat(cellfun(@(x)any(x == xy(sb)),xymat,'un',0))});
@@ -219,9 +222,11 @@ function [TXX,nrow,ncol] = main_plotting_func(data,channel,segv1,segv2,...
             end
             
             % store tx times for plotting lines later
+            if firstxy ~= 0 %make sure there was at least 1 goodxy in this set
             TXX{s} = unique(cell2mat(txx));
             TXX{s} = TXX{s}(~isnan(TXX{s})); %#ok<*AGROW>
             clear txx
+            end
             
             % axis and title
             axis tight
