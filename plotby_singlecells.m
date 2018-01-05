@@ -85,6 +85,7 @@ switch plotby
                 ah = subplot(nrow,ncol,sa); hold on
                 xy = xymat(strcmp(txs{sa},Txcat2(stridx))); % find xy
                 xy = intersect(xy, idx.Cell.(cellfn{s})); % find xy for treatment/celltype
+                if ~isempty(xy)
                 xy = xy(1);
                 % actual plotting
                 stackplot(ah,data{xy}.data.(channel), smin, smax)
@@ -97,31 +98,27 @@ switch plotby
                         if ~isnan(xx)
                             ob{sb} = line([xx,xx],[yy(1),yy(2)],'Color',...
                                 [linecolor(sb,:),0.7]);
-                        else
                         end
                     end
+                end
                 end
             end
             if p.lines
             % take only txt for which lines exist
             legtxt = regexp(txs{sa},'+','split');
-            if exist('ob','var') && sum(~cellfun(@isempty,ob)) ~= numel(legtxt)
+            if exist('ob','var') %&& sum(~cellfun(@isempty,ob)) ~= numel(legtxt)
                 % split tx names for legend if lines is on
-                tps = linetp{xymat == xy}; tps = tps(~cellfun(@isempty,tps));
-                txidx = zeros(1,numel(legtxt));
-                for se = 1:numel(tps) % find strings associated with the correct time points
-                    txidx = txidx + ~cellfun(@isempty,strfind(legtxt,tps{se}));
-                end
-                txidx = logical(txidx); % make logical index
-                legtxt = legtxt(txidx); % trim legend names to string assoc. w/ tp #
-                % remove @##tp
-            
-            legtxt  = arrayfun(@(x)regexprep(legtxt{x},'\d*tp',''),1:numel(legtxt),'un',0)'; % remove tp for label
             ob = ob(~cellfun(@isempty,ob)); % remove empties from line objects
+                for s = 1:numel(ob)
+                   legtxt{s} = ['Tx',num2str(s)]; 
+                end
+            ob = ob(~cellfun(@isempty,ob)); % remove empties from line objects
+            legtxt = legtxt(~cellfun(@isempty,ob)); % remove extra legend text
             legend([ob{:}],legtxt,'Orientation','vertical','Location','BestOutside') % make legend
             clear ob legtxt
             end
             end
+            
             suptitle(cellfn{s})
             set(gcf,'Position',pos)
         end
@@ -155,7 +152,7 @@ switch plotby
             if p.lines
             % take only txt for which lines exist
             legtxt = regexp(txs{s},'+','split');
-            if exist('ob','var') && sum(~cellfun(@isempty,ob)) ~= numel(legtxt)
+            if exist('ob','var') %&& sum(~cellfun(@isempty,ob)) ~= numel(legtxt)
                 % split tx names for legend if lines is on
                 tps = linetp{xymat == xy}; tps = tps(~cellfun(@isempty,tps));
                 txidx = zeros(1,numel(legtxt));
@@ -181,6 +178,9 @@ function [] = stackplot(ah,dat, smin, smax)
 nTime = size(dat,2);
 offst = 0;
 nTracks = 5;
+if size(dat,1) < nTracks
+    nTracks = size(dat,1)
+end
 datlength = sum(~isnan(dat),2);
 [~,I] = sort(datlength,'descend');
 dat = dat(I,:);
@@ -197,9 +197,10 @@ end
 %% find min and max of all data to set scales
 function [smin,smax] = sminmax(data,channel)
 mx = []; mn = [];
-for s = 1:numel(data)
-    mx = [mx;quantile(data{s}.data.(channel)(:),.95)];
-    mn = [mn;quantile(data{s}.data.(channel)(:),.05)];
+I = [find(~cellfun(@isempty,data))];
+for s = 1:numel(I)
+    mx = [mx;quantile(data{I(s)}.data.(channel)(:),.95)];
+    mn = [mn;quantile(data{I(s)}.data.(channel)(:),.05)];
 end
 smin = min(mn); smax = max(mx);
 end
