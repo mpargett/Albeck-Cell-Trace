@@ -38,7 +38,7 @@ elseif any(strcmp(plotby,{'cell','celltype','celltypes'}))
 else error('Accepted plotby types: treatment or celltype. plotby must be a string')
 end
 %% Input parsing
-p.lines = []; p.subset = []; p.tsamp = 1; p.hours = 0; p.dash = 1;
+p.lines = []; p.subset = []; p.tsamp = 1; p.hours = 0; p.dash = 1; p.nogene = 0;
 %Input option pair parsing:
 nin = length(varargin);     %Check for even number of add'l inputs
 if rem(nin,2) ~= 0; warning(['Additional inputs must be provided as ',...
