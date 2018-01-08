@@ -50,13 +50,27 @@ if ~isempty(p.subset) && ~iscell(p.subset)
     p.subset = {p.subset};
 end
 %% get cell type names
-if p.nogene == 0
-    c1 = cellfun(@(x,y)cat(2,x,y),pmd.Cell(:,:,1),pmd.Gene(:,:,1),'un',0);
-    c1 = c1(cellfun(@isstr,c1)); celltypes = unique(c1);
-else
-    c1 = pmd.Cell(:,:,1);
-    c2 = c1(cellfun(@isstr,c1)); celltypes = unique(c2); % find unique names of celltypes
+nct = ceil(size(pmd.Cell,3)/3);  ci = 3*((1:nct)-1) + 1;
+
+genecat = cell(size(pmd.Gene(:,:,1)));
+for s = 1: size(pmd.Gene,3)
+    genecat = cellfun(@(x,y)[x,y], genecat, pmd.Gene(:,:,s), ...
+        'UniformOutput', false);
 end
+%   Cat genes to cells
+cnames = cellfun(@(x,y)[x,'_',y], pmd.Cell(:,:,ci), ...
+            repmat(genecat,[1,1,numel(ci)]), ...
+            'UniformOutput', false);
+%   Remove any non-word characters to make usable as names
+cnames = regexprep(cnames, {'\W','^[\d_]*(\w)'}, {'','$1'});
+%   Make a name for each unique catted string
+[celltypes] = unique(cnames(cellfun(@isstr,cnames)));
+%   Disregard invalid names and warn
+gn = cellfun(@isvarname,celltypes);
+if any(~gn); warning(['Invalid cell name found for idx: ', celltypes{~gn}]);
+    celltypes = celltypes(gn);
+end
+
 celltypes = celltypes(~cellfun(@isempty,celltypes)); % discard empty name fields
 % get rid of @ density if present for fieldname
 cellfn = cellfun(@(x)x{1},regexp(celltypes,'@','split'),'un',0);
@@ -65,10 +79,13 @@ cellfn = arrayfun(@(x)regexprep(cellfn{x},'[^a-zA-Z0-9]','_'),1:numel(cellfn),'u
 % add x to beginning of name starts with number
 cellfn = arrayfun(@(x)regexprep(cellfn{x},'(^[\d_]+\w)','x$1'),1:numel(cellfn),'un',0);
 % make list of xys for each celltype
-for s = 1:numel(cellfn)
+
+%   Assign matching xy positions to each compiled cell name
+for s = 1:numel(celltypes)
     %   Assemble list of xys with the current cname
-    idx.(cellfn{s}) = [pmd.xy{strcmp(celltypes{s},c1)}];
+    idx.(celltypes{s}) = [pmd.xy{strcmp(celltypes{s},cnames)}];  
 end
+
 
 %% Find good xys that actually have data
 goodxy = false(1,max([pmd.xy{:}])); 
@@ -135,7 +152,6 @@ if ~isempty(p.subset)
    end
     
 end
-
 % beautify treatment names for labels
 % remove extra spaces in name caused by NaNs to make pretty names
 treatments = arrayfun(@(x)regexprep(treatments{x},char(0),''),1:size(treatments),'un',0)';
@@ -147,7 +163,6 @@ treatments = arrayfun(@(x)regexprep(treatments{x},'_',' '),1:size(treatments),'u
 
 
 % vector of xys for packing txs into idx structure.
-
 xymat = pmd.xy(stridx);
 % now pack concatinated txs into the idx format 
 for s = 1:numel(txs)
@@ -173,7 +188,6 @@ switch plotby
         legname = cellfn;
         [TXX,nrow,ncol] = main_plotting_func(data,channel,txs,cellfn,idx,...
             xymat,cmap,linetp,titlevec,legname,goodxy,p);
-        
 end
 
 % if requested, plot treatment lines
@@ -188,12 +202,15 @@ end
 function [TXX,nrow,ncol] = main_plotting_func(data,channel,segv1,segv2,...
     idx,xymat,cmap,linetp,titlevec,legname,goodxy,p)
 
+% remove any underscores in legend text to avoid subscript shenanigans
+legname = arrayfun(@(x)regexprep(legname{x},'_',' '),1:numel(legname),'un',0)';
+%% actual plotting part
+
   [nrow,ncol,pos] = subplot_sizer(numel(segv1)); % optimal subplot dimensions
-  
         figure,
         for s = 1:numel(segv1)
             subplot(nrow,ncol,s), hold on
-            sc = 0; legvec = [];
+             legvec = []; legtxt = {}; sc = 0;
             % make dashed lines if there are a lot of lines
             if numel(segv2) > 5 && p.dash
                 linestyle(1:2:numel(segv2)) = deal({'-.'});
@@ -213,6 +230,7 @@ function [TXX,nrow,ncol] = main_plotting_func(data,channel,segv1,segv2,...
                     sc = sc+1; % index for saving individual line objects for input to legend.
                     if firstxy == 1
                         legvec = [legvec,1]; % identify unique legend entries.
+                        legtxt = cat(1,legtxt,legname{sa});
                         txx{sa} = str2double(linetp{...
                             cell2mat(cellfun(@(x)any(x == xy(sb)),xymat,'un',0))});
                     else
@@ -242,7 +260,7 @@ function [TXX,nrow,ncol] = main_plotting_func(data,channel,segv1,segv2,...
         legvec = logical(legvec);
         subplot_standardizer(gcf) % make axis limits the same for all plots
         set(gcf,'Position',pos) % figure bigger
-        extraleg(legname,[h{legvec}],nrow,ncol,s) % make legend in extra subplot
+        extraleg(legtxt,[h{legvec}],nrow,ncol,s) % make legend in extra subplot
 end
         
 %% function to select figure dimensions
