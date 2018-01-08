@@ -51,8 +51,8 @@ if ~isempty(p.subset) && ~iscell(p.subset)
 end
 %% get cell type names
 if p.nogene == 0
-    cg = cellfun(@(x,y)cat(2,x,y),pmd.Cell(:,:,1),pmd.Gene(:,:,1),'un',0);
-    cg = cg(cellfun(@isstr,cg)); celltypes = unique(cg);
+    c1 = cellfun(@(x,y)cat(2,x,y),pmd.Cell(:,:,1),pmd.Gene(:,:,1),'un',0);
+    c1 = c1(cellfun(@isstr,c1)); celltypes = unique(c1);
 else
     c1 = pmd.Cell(:,:,1);
     c2 = c1(cellfun(@isstr,c1)); celltypes = unique(c2); % find unique names of celltypes
