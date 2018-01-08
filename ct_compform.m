@@ -26,8 +26,12 @@ function [d, iv, p, ci] = ct_compform(d, iv, p, ci)
 
 if ~exist('p','var') || isempty(p)  %IF mapping to compressed form
     %Compress cell array to structure array
-    if iscell(d) && isstruct(d{1}); d = cat(1,d{:}); p.cell = true; end
-
+    if iscell(d);
+        p.gi = ~cellfun('isempty', d);
+        d = cat(1,d{:}); p.cell = true; 
+    else p.gi = true(size(d));  
+    end
+    
     iv = struct('lin',[],'cel',[]);     %Initialize index vectors
     p.cname = fieldnames(d(1).data);    %Collect channel names
     %   Convert channel names to indices as needed
@@ -36,12 +40,16 @@ if ~exist('p','var') || isempty(p)  %IF mapping to compressed form
     end
     
     %Collect cell and lineage indices
-    if isfield(d(1), 'linfo');      iv.lin = {d.linfo};        end
-    if isfield(d(1), 'cellindex');  iv.cel = {d.cellindex};    end
+    if isfield(d(1), 'linfo');      iv.lin = cell(size(p.gi));
+        iv.lin(p.gi) = {d.linfo};        end
+    if isfield(d(1), 'cellindex');  iv.cel = cell(size(p.gi));
+        iv.cel(p.gi) = {d.cellindex};    end
     
     %Convert data to compact format
     d = arrayfun(@(x)struct2cell(x.data), d, 'Un', 0);
     d = cellfun(@(x)cat(3, x{:}), d, 'Un', 0);
+    %   Include empty cells for bad inidices
+    if ~all(p.gi); dt = d; d = cell(size(p.gi)); d(p.gi) = dt; end
     
 else  %IF mapping back from compressed form (have p)
     %Ensure iv, civ are present
@@ -49,14 +57,14 @@ else  %IF mapping back from compressed form (have p)
     %Revert to full data structure format
     %   Convert to named channels
     dtmp = cellfun( @(x)cell2struct(num2cell(x,[1,2]), p.cname, 3), ...
-        d, 'Un', 0 );  d = struct('data',[]);
+        d(p.gi), 'Un', 0 );  d = struct('data',[]);
     %   Add data
     [d(1:numel(dtmp)).data] = deal(dtmp{:});
     %   Repackage cell and lineage indices
-    if ~isempty(iv.cel); [d.cellindex] = deal(iv.cel{:});   end
-    if ~isempty(iv.lin); [d.linfo] = deal(iv.lin{:});       end
+    if ~isempty(iv.cel); [d.cellindex] = deal(iv.cel{p.gi});   end
+    if ~isempty(iv.lin); [d.linfo] = deal(iv.lin{p.gi});       end
     %   Re-encapsulate in cell array as needed
-    if p.cell; d = num2cell(d); end    
+    if p.cell; dt = d; d = cell(size(p.gi)); d(p.gi) = num2cell(dt); end    
 end
 
 end

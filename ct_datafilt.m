@@ -115,7 +115,7 @@ dfs = ~cellfun(@isempty, regexpi({ft.t}, '^dm'));
 
 %Loop over XYs
 f = cell(nx,1);
-for s = 1:nx
+for s = find(dp.gi(:))'
     [nc, nt, nchan] = size(d{s});   %Get size of data array
     
     if any( dfs )   %IF any filters are derivative
