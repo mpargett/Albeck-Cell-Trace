@@ -50,15 +50,20 @@ if ~isempty(p.subset) && ~iscell(p.subset)
     p.subset = {p.subset};
 end
 %% get cell type names
-c1 = pmd.Cell(:,:,1);
-c2 = c1(cellfun(@isstr,c1)); celltypes = unique(c2); % find unique names of celltypes
+if p.nogene == 0
+    cg = cellfun(@(x,y)cat(2,x,y),pmd.Cell(:,:,1),pmd.Gene(:,:,1),'un',0);
+    cg = cg(cellfun(@isstr,cg)); celltypes = unique(cg);
+else
+    c1 = pmd.Cell(:,:,1);
+    c2 = c1(cellfun(@isstr,c1)); celltypes = unique(c2); % find unique names of celltypes
+end
 celltypes = celltypes(~cellfun(@isempty,celltypes)); % discard empty name fields
 % get rid of @ density if present for fieldname
 cellfn = cellfun(@(x)x{1},regexp(celltypes,'@','split'),'un',0);
 % remove any spaces in name
-cellfn = arrayfun(@(x)regexprep(cellfn{x},'[^a-zA-Z0-9]',''),1:size(cellfn),'un',0);
+cellfn = arrayfun(@(x)regexprep(cellfn{x},'[^a-zA-Z0-9]','_'),1:numel(cellfn),'un',0);
 % add x to beginning of name starts with number
-cellfn = arrayfun(@(x)regexprep(cellfn{x},'^[\d_]*(\w)','x$0'),1:size(cellfn),'un',0);
+cellfn = arrayfun(@(x)regexprep(cellfn{x},'(^[\d_]+\w)','x$1'),1:numel(cellfn),'un',0);
 % make list of xys for each celltype
 for s = 1:numel(cellfn)
     %   Assemble list of xys with the current cname
