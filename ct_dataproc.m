@@ -181,6 +181,8 @@ switch rmat
         elseif numel(ind) == 1; sfun = @(x1)   x1;  %Do nothing, if 1 index
             warning(['KTR "',n,'" provided only one channel index (ok ',...
                 'if input channel is a precomputed ratio.', dtxt]);
+            else warning(['No Channel index found for ("',n,'").  ',dtxt]);  
+                sfun = @(x)x;
         end
     otherwise;  sfun = @(x)x;
 end
