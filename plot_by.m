@@ -52,15 +52,28 @@ end
 %% get cell type names
 nct = ceil(size(pmd.Cell,3)/3);  ci = 3*((1:nct)-1) + 1;
 
-genecat = cell(size(pmd.Gene(:,:,1)));
-for s = 1: size(pmd.Gene,3)
-    genecat = cellfun(@(x,y)[x,y], genecat, pmd.Gene(:,:,s), ...
-        'UniformOutput', false);
-end
+if ~p.nogene % cat celltype to gene unless indidcated
+    genecat = cell(size(pmd.Gene(:,:,1)));
+    for s = 1: size(pmd.Gene,3)
+        genecat = cellfun(@(x,y)[x,y], genecat, pmd.Gene(:,:,s), ...
+            'UniformOutput', false);
+    end
+
 %   Cat genes to cells
 cnames = cellfun(@(x,y)[x,'_',y], pmd.Cell(:,:,ci), ...
             repmat(genecat,[1,1,numel(ci)]), ...
             'UniformOutput', false);
+else
+    cnames = cell(size(pmd.Cell(:,:,1)));
+    for s = 1:numel(ci)
+    cnames = cellfun(@(x,y)[x,y],cnames,pmd.Cell(:,:,s),'Un',0);
+    end
+    
+    nancell = find(~cell2mat(cellfun(@isstr,cnames,'Un',0)));
+    for s = 1:numel(nancell)
+       cnames{nancell(s)} = ''; 
+    end
+end
 %   Remove any non-word characters to make usable as names
 cnames = regexprep(cnames, {'\W','^[\d_]*(\w)'}, {'','$1'});
 %   Make a name for each unique catted string
@@ -99,8 +112,10 @@ Txcat = cell(size(pmd.Cell,1),size(pmd.Cell,2)); % initialize cell array
 linetp = cell(size(pmd.Cell,1),size(pmd.Cell,2)); % initialize cell array
 
 for s = 1:numel(catTxnames) % cat each treatment in a loop
+    numtreat = size(pmd.(catTxnames{s}),3)/5;
+    tid = logical(repmat([1,1,1,0,0],1,numtreat));
     Txcat = cat(3,Txcat, cellfun(@(x)cat(2,x{:}),...
-        cat(3,num2cell(pmd.(catTxnames{s})(:,:,1:3),3)),'Un',0));
+        cat(3,num2cell(pmd.(catTxnames{s})(:,:,tid),3)),'Un',0));
     linetp = cat(3,linetp, cellfun(@(x)cat(2,x{:}),...
         cat(3,num2cell(pmd.(catTxnames{s})(:,:,4),3)),'Un',0));
 end
@@ -139,6 +154,7 @@ for s = 1:numel(Txcat2)
 end
 % find the unique treatment combos
 txs = unique(Txcat2(cellfun(@isstr,Txcat2)));
+
 % restrict to subset
 if ~isempty(p.subset)
     txI = ~cellfun(@isempty,(regexp(txs,strjoin(p.subset,'|'))));
@@ -152,6 +168,19 @@ if ~isempty(p.subset)
    end
     
 end
+
+% sort the treatments into descending order
+txsort = regexprep(txs,'0_','');
+dosenums = regexp(txsort,'[0-9]*','match');
+if any(cellfun(@isempty,dosenums))
+dosenums{cellfun(@isempty,dosenums)} = {'0'};
+end
+dosenums = cell2mat(cellfun(@(x)str2double(x{1}),dosenums,'Un',0));
+[~,I] = sort(dosenums);
+txs = txs(I);
+treatments = treatments(I);
+
+
 % beautify treatment names for labels
 % remove extra spaces in name caused by NaNs to make pretty names
 treatments = arrayfun(@(x)regexprep(treatments{x},char(0),''),1:size(treatments),'un',0)';
@@ -204,6 +233,8 @@ function [TXX,nrow,ncol] = main_plotting_func(data,channel,segv1,segv2,...
 
 % remove any underscores in legend text to avoid subscript shenanigans
 legname = arrayfun(@(x)regexprep(legname{x},'_',' '),1:numel(legname),'un',0)';
+titlevec = arrayfun(@(x)regexprep(titlevec{x},'_',' '),1:numel(titlevec),'un',0)';
+
 %% actual plotting part
 
   [nrow,ncol,pos] = subplot_sizer(numel(segv1)); % optimal subplot dimensions
@@ -212,7 +243,7 @@ legname = arrayfun(@(x)regexprep(legname{x},'_',' '),1:numel(legname),'un',0)';
             subplot(nrow,ncol,s), hold on
              legvec = []; legtxt = {}; sc = 0;
             % make dashed lines if there are a lot of lines
-            if numel(segv2) > 5 && p.dash
+            if numel(segv2) > 6 && p.dash
                 linestyle(1:2:numel(segv2)) = deal({'-.'});
                 linestyle(2:2:numel(segv2)) = deal({'-'});
             else
