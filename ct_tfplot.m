@@ -25,7 +25,8 @@ function out = ct_tfplot(atf, varargin)
 in = struct('fq', 0:0.5/(numel(atf)-1):0.5, ...
     'ch', [], 'x', [], 'y', [], 't', []);
 opt = struct('xscale', 'log', 'plotgain', true, 'plotphase', true, ...
-    'type', 'meanover', 'tu', 'au', 'fqu', 'Hz', 'lw', 1, 'cmap', 'o');
+    'type', 'meanover', 'tu', 'au', 'fqu', 'Hz', 'lw', 1, 'cmap', 'o',...
+    'cbs', []);
 
 %Parse inputs to the input structure
 inord = fieldnames(in);  nno = numel(inord);  nin = nargin-1;
@@ -101,6 +102,10 @@ for s = nio+(1:npp)  %For each plot to generate
         case 'phase';   out.phase = yy;
         case 'cohere';  out.coherence = yy;
     end
+    %FIXME - show confidence bands (frequency) based on sample rate and
+    %   time series length (overlay on gain and phase). What about
+    %   coherence?  Show both bounds on coherence, or even on all?
+    if ~isempty(opt.cbs);  sub_plotbnds(ax, flg{s}, opt.cbs);  end
 end
 
 out.fh = [fa, ff];
@@ -238,4 +243,20 @@ end
 %Plot via CT_TRACKVIS
 ct_trackvis(ax, 'histogram', y, 'cmap', p.cmap); 
 end
+
+function [] = sub_plotbnds(ax, flg, cbs)
+hold(ax, 'on');
+switch flg
+    case 'gain';        pb = cbs(1,:);
+    case 'phase';       pb = cbs(2,:);
+    case 'cohere';      pb = [cbs(1,:),cbs(2,:)];
+    otherwise; return
+end
+axy = axis(ax); yr = axy(3:4);
+plot(ax, [pb;pb],  yr(:), 'r:');
+
+end
+
+
+
 
