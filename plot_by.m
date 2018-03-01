@@ -168,17 +168,16 @@ if ~isempty(p.subset)
    end
     
 end
-
 % sort the treatments into descending order
 txsort = regexprep(txs,'0_','');
-dosenums = regexp(txsort,'[0-9]*','match');
-if any(cellfun(@isempty,dosenums))
-dosenums{cellfun(@isempty,dosenums)} = {'0'};
+dosenums = cellfun(@str2double,regexp(txsort,'[0-9]*','match'),'Un',0);
+dosenums(cellfun(@isempty,dosenums)) = {0};
+if ~isempty(dosenums)
+[~,I] = sort(cell2mat(dosenums));
+txs = txs(I(:,1)); treatments = treatments(I(:,1));
+[~,I] = sort(arrayfun(@(x)txs{x}(1),1:5,'Un',0));
+txs = txs(I); treatments = treatments(I);
 end
-dosenums = cell2mat(cellfun(@(x)str2double(x{1}),dosenums,'Un',0));
-[~,I] = sort(dosenums);
-txs = txs(I);
-treatments = treatments(I);
 
 
 % beautify treatment names for labels
