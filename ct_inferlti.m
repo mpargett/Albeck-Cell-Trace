@@ -73,7 +73,7 @@ if p.center; x = cellfun(@(xx)xx-mean(xx),x,'UniformOutput',false); end
 %   Use Multi-Taper averaging method, expecting non-periodic signals and
 %   relatively short duration (multiple windows to be different signals,
 %   not just different noise) 
-[fq, tf_e, cn, ch] = deal(cell(nsig,1));  %Initialize
+[fq, tf_e, cn, ch, cbs] = deal(cell(nsig,1));  %Initialize
 for s = 1:nsig  %FOR each signal
     nt = numel(x{s});              %Number of time points
     %   Check for size consistency (skip if bad)
@@ -82,7 +82,7 @@ for s = 1:nsig  %FOR each signal
     %Perform TF Estimation, per method specified
     if strcmpi(p.meth, 'welch')
         %   Welch's method based versions
-        [tf_e{s}, fq{s}] = tfestimate(x{s}, y{s}, [],[],[], p.fqs);
+        [tf_e{s}, fq{s}, cn{s}] = tfestimate(x{s}, y{s}, [],[],[], p.fqs);
         [ch{s}] = mscohere(x{s}, y{s}, [],[],[], p.fqs);
 %         %Backup procedures, manually performing Welch
 %         [psd_mt(s).cross, f_mt{s}] = cpsd(x{s},y{s},[],[],[],fq_samp);
@@ -108,10 +108,16 @@ for s = 1:nsig  %FOR each signal
         %   Get Coherence estimate (~confidence)
         ch{s} = (abs(psd_e(s).cross).^2)./(psd_e(s).auto1.*psd_e(s).auto2);
     end
+    %Calculate empirical confidence regions
+    glo = 10*p.fqs/nt;          %Low bound on gain
+    ghi = fq{s}(end) .* 0.33;  	%High bound on gain    
+    cbs{s} = [glo, ghi; glo.*10, ghi./10];
+    %                   ^Phase Low  ^Phase High
 end
 
 %Pack TF values into output structure (ordered as were input signals)
-q = cell2struct([fq, tf_e, cn, ch], {'fq', 'tf', 'cn', 'ch'}, 2);
+q = cell2struct([fq, tf_e, cn, ch, cbs], ...
+        {'fq', 'tf', 'cn', 'ch', 'cbs'}, 2);
 
 %Mean Transfer Function
 if p.meantf && ~strcmpi(p.meth, 'exact')
@@ -130,7 +136,8 @@ if p.meantf && ~strcmpi(p.meth, 'exact')
     ch_mean = (abs(mn_cross).^2)./(mn_auto1.*mn_auto2);
     %   Pack into output structure
     q(nsig+1).fq  = f_mn;        q(nsig+1).tf = tf_mean;    
-    q(nsig+1).ch = ch_mean;
+    q(nsig+1).ch = ch_mean;      tcb = cat(3, q(1:nsig).cbs);  
+    q(nsig+1).cbs = [max(tcb(:,1,:),[],3), min(tcb(:,2,:),[],3)];
 end
 
 end
