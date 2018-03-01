@@ -42,11 +42,6 @@ in(isc) = cellfun(@(x)sub_nanpad(x), in(isc), 'UniformOutput', false);
 
 %Define indices of 'good' data (nonzero), in all channels simultaneously
 goodi = cellfun(@(x)~isnan(x), in, 'UniformOutput', false);
-if all(cellfun(@(x)all(x(:)), goodi)); 
-    goodi = cellfun(@(x)x>0, in, 'UniformOutput', false);
-    %FIXME. Remove this if/when other methods nailed down better to have
-    %uniform input conditions
-end
 
 %Require good indices in all channels
 goodi = all( cat(3, goodi{:}), 3);
