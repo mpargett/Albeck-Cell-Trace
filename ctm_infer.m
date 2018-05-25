@@ -110,8 +110,8 @@ if p.runfits
 %   Use any separable univariate non-linear by Theil-Sen?
 %   Exclude from AIC, of course?
 [tsm, tsg] = ctm_theilsen(x,y,'w');
-ts_w = struct('name', 'theil-sen', 'model', tsm, 'sse', tsg.sse, ...
-    'np', 2);
+ts_w = struct('name', 'theil-sen', 'model', tsm, 'gof', tsg, ...
+    'sse', tsg.sse, 'np', 2);
 
 %Get models to fit (using cti_modellib)
 [mlib, mp] = ctm_modellib(p.models);
@@ -136,6 +136,7 @@ for s =1:size(mlib,1)  %FOR every model in the library
     %   Assign fits and outputs for each model
     w.m(s).name     = mlib{s,1};
     w.m(s).model    = fo;
+    w.m(s).gof      = gof;
     w.m(s).sse      = gof.sse;
     w.m(s).np       = numcoeffs(fo);
 end;    w.m = [ts_w, w.m];  %Prepend the Theil-Sen model
