@@ -24,6 +24,7 @@
 %   packascell  - TRUE to return data with NaNs removed as a cell array
 %                (depricated), FALSE will return each channel as a
 %                NaN-padded  cells x time array 
+%   verbose     - TRUE to show all warnings
 
 function [d,p] = ct_dataproc(fname, varargin)
 
@@ -31,7 +32,7 @@ function [d,p] = ct_dataproc(fname, varargin)
 %Default parameters
 p = struct( 'savename',{{[]}},  'name',{{'ekar','fra','x','y'}}, ...
     'ind',{{[4,5],3,7,8}}, 'fun',{{[]}},  'tsamp',1,  'pwrat',[],  ...
-    'stripidx', false, ...
+    'stripidx', false, 'verbose', true, ...
 	'gapmax',2,  'dlengthmin',100,  'startonly',false); %<- For trimming
 
 %Input option pair parsing:
@@ -41,13 +42,18 @@ if rem(nin,2) ~= 0; warning(['Additional inputs must be provided as ',...
 %Split pairs to the parameter structure
 for s = 1:2:nin;    p.(lower(varargin{s})) = varargin{s+1};     end
 
+%Block warnings if not running verbose
+if p.verbose;   warning('ON', 'CT:DATAPROC');
+else            warning('OFF','CT:DATAPROC');   end
+
 %Check input file name
 if ischar(fname); fname = {fname}; end
 if ischar(p.savename); p.savename = {p.savename}; end
 nf = length(fname);
 if nf ~= numel(p.savename)
-    warning(['Number of file names should match number of save names.',...
-        '  Any file names with no corresponding save will not be saved.']);
+    warning('CT:DATAPROC', ['Number of file names should match number',...
+        ' of save names.  Any file names with no corresponding save ',...
+        'name will not be saved.']);
     [p.savename{end:numel(fname)}] = deal([]);
 end
 
@@ -159,8 +165,8 @@ rmat = find( ~cellfun('isempty', regexpi(n, rn, 'start')) );
 
 %Check for inconsistent matches
 nr = length(rmat);  dtxt = 'Applying no processing function.';
-if nr < 1;     warning(['Name "',n,'" not recognized.  ',dtxt]); rmat = 0;
-elseif nr > 2; warning(['Unparsable name, "',n,'".  ',dtxt]); rmat = 0;
+if nr < 1;     warning('CT:DATAPROC',['Name "',n,'" not recognized.  ',dtxt]); rmat = 0;
+elseif nr > 2; warning('CT:DATAPROC',['Unparsable name, "',n,'".  ',dtxt]); rmat = 0;
 end
 
 %Define desired processing function
@@ -169,19 +175,22 @@ switch rmat
         if ~isempty(pwrat); 
             if numel(ind) == 2;     sfun = @(x1,x2) 1 - (x1./x2)./pwrat;
             elseif numel(ind) == 1; sfun = @(x1)    1 - (x1)    ./pwrat; 
-            else warning(['FRET-based data must passed with 1 or 2 ',...
-                'channel indices only.  (1 is for pre-computed ratios, ',...
-                '2 for individual color channels)']);   sfun = @(x)x;
+            else warning('CT:DATAPROC',['FRET-based data must passed ',... 
+                'with 1 or 2 channel indices only.  (1 is for ',...
+                'pre-computed ratios, 2 for individual color channels)']);   
+                sfun = @(x)x;
             end
-        else warning(['Power ratio must be supplied for FRET-based ',...
-        	'Kinase Activity Reporters ("',n,'").  ',dtxt]);  sfun = @(x)x;
+        else warning('CT:DATAPROC',['Power ratio must be supplied for ',...
+        	'FRET-based Kinase Activity Reporters ("',n,'").  ',dtxt]);  
+            sfun = @(x)x;
         end
     case 2  %For Kinase Translocation Reporters (KTR)
         if numel(ind) == 2;     sfun = @(x1,x2)x1./x2;  %Take ratio
         elseif numel(ind) == 1; sfun = @(x1)   x1;  %Do nothing, if 1 index
-            warning(['KTR "',n,'" provided only one channel index (ok ',...
-                'if input channel is a precomputed ratio.', dtxt]);
-            else warning(['No Channel index found for ("',n,'").  ',dtxt]);  
+            warning('CT:DATAPROC',['KTR "',n,'" provided only one channel',...
+                ' index (ok if input channel is a precomputed ratio.', dtxt]);
+            else warning('CT:DATAPROC',...
+                    ['No Channel index found for ("',n,'").  ',dtxt]);  
                 sfun = @(x)x;
         end
     otherwise;  sfun = @(x)x;
