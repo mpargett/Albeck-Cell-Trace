@@ -21,6 +21,8 @@
 %   subset - only plot a subset of treatments or celltypes. For example, if
 %   you want to plot only wells that were treated with EGF, subset = 'EGF'.
 %
+%   tx_order - order the legened by a certain treatment. Defualt is Tx1.
+%
 %
 % EXAMPLE
 % plot_by('celltype',d,'ekar',pmd,'lines',1)
@@ -39,6 +41,7 @@ else error('Accepted plotby types: treatment or celltype. plotby must be a strin
 end
 %% Input parsing
 p.lines = []; p.subset = []; p.tsamp = 1; p.hours = 0; p.dash = 1; p.nogene = 0;
+p.tx_order = 1;
 %Input option pair parsing:
 nin = length(varargin);     %Check for even number of add'l inputs
 if rem(nin,2) ~= 0; warning(['Additional inputs must be provided as ',...
@@ -157,7 +160,8 @@ txs = unique(Txcat2(cellfun(@isstr,Txcat2)));
 
 % restrict to subset
 if ~isempty(p.subset)
-    txI = ~cellfun(@isempty,(regexp(txs,strjoin(p.subset,'|'))));
+%     if regexp(p.subset,'&')
+    txI = ~cellfun(@isempty,(regexp(txs,strjoin(p.subset,'&'))));
     ctI = ~cellfun(@isempty,(regexp(cellfn,strjoin(p.subset,'|'))));
    if any(txI);
        txs = txs(txI);
@@ -169,14 +173,22 @@ if ~isempty(p.subset)
     
 end
 % sort the treatments into descending order
-txsort = regexprep(txs,'0_','');
-dosenums = cellfun(@str2double,regexp(txsort,'[0-9]*','match'),'Un',0);
+txsort = regexprep(txs,'0_','0.');
+dosenums = cellfun(@str2double,regexp(txsort,'[0-9\.]*','match'),'Un',0);
 dosenums(cellfun(@isempty,dosenums)) = {0};
 if ~isempty(dosenums)
+    % check for inconsistent sizes
+    sz = cell2mat(...
+        arrayfun(@(x)size(dosenums{x},2),1:numel(dosenums),'Un',0));
+    sz_unique = unique(sz);
+    if numel(sz_unique) > 1
+        for kk = 1:numel(sz)
+        nans2cat = max(sz) - sz(kk);
+        dosenums{kk} = [nan(1,nans2cat),dosenums{kk}];
+        end
+    end
 [~,I] = sort(cell2mat(dosenums));
-txs = txs(I(:,1)); treatments = treatments(I(:,1));
-[~,I] = sort(arrayfun(@(x)txs{x}(1),1:5,'Un',0));
-txs = txs(I); treatments = treatments(I);
+txs = txs(I(:,p.tx_order)); treatments = treatments(I(:,p.tx_order));
 end
 
 
