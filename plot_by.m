@@ -147,7 +147,15 @@ Txcat2 = cellfun(@(x)cat(2,x{:}),cat(3,num2cell(Txcat2,3)),'Un',0);
 stridx = cellfun(@isstr,Txcat2);
 treatments = unique(Txcat2(cellfun(@isstr,Txcat2)));
 
+% find the unique treatment combos
+txs = unique(Txcat2(cellfun(@isstr,Txcat2)));
 % replace spaces and / so txs can be used as fieldnames
+for s = 1:numel(txs)
+    txs{s} = regexprep(txs{s},char(0),'');
+    txs{s} = regexprep(txs{s},'(^|\s|+)','');
+    txs{s} = regexprep(txs{s},'[^a-zA-Z0-9]','_');
+    
+end
 for s = 1:numel(Txcat2)
     if isstr(Txcat2{s})
     Txcat2{s} = regexprep(Txcat2{s},char(0),'');
@@ -155,9 +163,6 @@ for s = 1:numel(Txcat2)
     Txcat2{s} = regexprep(Txcat2{s},'[^a-zA-Z0-9]','_');
     end
 end
-% find the unique treatment combos
-txs = unique(Txcat2(cellfun(@isstr,Txcat2)));
-
 % restrict to subset
 if ~isempty(p.subset)
 %     if regexp(p.subset,'&')
@@ -218,13 +223,21 @@ switch plotby
     % Plot by Cell type
     case 'celltype'
         titlevec = cellfn;
+        if numel(txs) > 2
         cmap = rainbow(numel(txs));
+        else
+            cmap = [0,0.4,0.7;0.6,0.1,0.2];
+        end
         legname = treatments;
         [TXX,nrow,ncol] = main_plotting_func(data,channel,cellfn,txs,idx,...
             xymat,cmap,linetp,titlevec,legname,goodxy,p);
     case 'treatment'
         titlevec = treatments; % use beautified tx names
+        if numel(cellfn) > 2
         cmap = rainbow(numel(cellfn)+1);
+        else
+             cmap = [0,0.4,0.7;0.6,0.1,0.2];
+        end   
         legname = cellfn;
         [TXX,nrow,ncol] = main_plotting_func(data,channel,txs,cellfn,idx,...
             xymat,cmap,linetp,titlevec,legname,goodxy,p);
