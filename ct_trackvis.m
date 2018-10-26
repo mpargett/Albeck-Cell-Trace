@@ -220,6 +220,11 @@ switch lower(type)
             set(ah(3), 'Position', get(ah(3),'Position') + [0,-0.12,0,0.16]);
         end
         
+    case 'meansemble'
+        %Ensemble with mean overlay
+        ct_trackvis(ah, 'ensemble', d, varargin{4:end}, 'nolabel', true);
+        ct_trackvis(ah, 'mean', d, varargin{4:end}, 'nolabel', true);
+        
     case 'stack'
         %Get y-scale
         ymn = min( min(min(d(1:p.nstacks*p.ntracks,:))), min(prctile(d,20)) );
