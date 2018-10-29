@@ -148,7 +148,7 @@ mn = regexpi(typ, '(?<m>^\D*)(?<n>\d?)', 'names');
 if isempty(mn.n); mn.n = 1; else mn.n = str2double(mn.n); end    
 
 %Range of output, with a safety factor
-ry = range(y)*10;
+ry = range(y)*10; rx = range(x)./2;
 
 %Use smoothed data for estimates
 sy = smooth(x, y, 0.2, 'loess'); 
@@ -195,8 +195,8 @@ switch mn.m
         sp = [c,a,b,td];     %Baseline, delay, set start
         sp = [sp(1), repmat(sp(2:end), 1, mn.n)];
         %Set coefficient bounds
-        rx = range(x);	bl = [-ry, -ry, -ry, -rx];  
-        bu = [ry,  ry,  ry,  rx];
+        bl = [-ry, -ry, -ry, min(x)-rx];  
+        bu = [ry,  ry,  ry,  max(x)+rx];
         bl = [bl(1), repmat(bl(2:end), 1, mn.n)];
         bu = [bu(1), repmat(bu(2:end), 1, mn.n)];
         %Set both to identical for Two-term exponential ??
@@ -207,8 +207,8 @@ switch mn.m
         ka = x(ind);    sp = [c,a,ka,h];        %Set half-max and starts
         sp = [sp(1), repmat(sp(2:end), 1, mn.n)];
         %Set coefficient bounds
-        rx = range(x);  bl = [min(y), -ry, -rx, 0  ]; 
-        bu = [max(y),  ry,  rx, Inf]; 
+        bl = [min(y), -ry, min(x)-rx, 0  ]; 
+        bu = [max(y),  ry, max(x)+rx, Inf]; 
         bl = [bl(1), repmat(bl(2:end), 1, mn.n)];
         bu = [bu(1), repmat(bu(2:end), 1, mn.n)];
         %Set both to identical for Two-term hill ??
@@ -217,12 +217,12 @@ switch mn.m
         a1 = range(sy);  [mx,mi] = max(sy);   b1 = x(mi);   c1 = 1; %#ok<ASGLU>
         sp = [a1, b1, c1];  	sp = repmat(sp, 1, mn.n);
         %Set coefficient bounds
-        bl = [-ry, min(x), 0  ];       bl = repmat(bl, 1, mn.n);
-        bu = [ ry, max(x), Inf];       bu = repmat(bu, 1, mn.n);
+        bl = [-ry, min(x)-rx, 0  ];       bl = repmat(bl, 1, mn.n);
+        bu = [ ry, max(x)+rx, Inf];       bu = repmat(bu, 1, mn.n);
     case 'fourier' 
         %   Coefs: a0, a1, b1, w  Y = a0+a1*cos(x*w)+b1*sin(x*w)
         a0 = mean(sy);  a1 = range(sy)/2; 	b1 = range(sy)/2;  
-        w = 2*pi/range(x); 	sp = [a0, a1, b1, w]; 	
+        w = pi/rx; 	sp = [a0, a1, b1, w]; 	
         sp = [sp(1), repmat(sp(2:end-1), 1, mn.n), sp(end)];
         %Set coefficient bounds
         bl = [min(y), -ry, -ry, 0];   
