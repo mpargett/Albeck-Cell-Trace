@@ -77,7 +77,7 @@ for s = 1:length(fname)
             'Resulting cell (',num2str(s),') will be empty.']); continue;
     end
     %Load data - check first if lineage info is present
-    vchk = whos(fname{s});  haslinfo = any(strcmp({vchk.name},'linfo'));
+    vchk = whos('-file',fname{s});  haslinfo = any(strcmp({vchk.name},'linfo'));
     if haslinfo     %Collect linfo, if available
             td = load(fname{s}, 'vcorder', 'valcube', 'bkg', 'linfo');
     else    td = load(fname{s}, 'vcorder', 'valcube', 'bkg');
