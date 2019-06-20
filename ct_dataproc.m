@@ -128,7 +128,7 @@ for s = 1:length(fname)
     %IF linfo is present, apply trimming index to linfo, append to output
     if haslinfo
         %Filter linfo
-        linfo = linfo(d.cellindex,:); 
+        linfo = td.linfo(d.cellindex,:);
         %   Build map to new indices
         imap = nan(length(d.cellindex),1);          %Initialize 
         imap(d.cellindex) = 1:nnz(d.cellindex);     %Place new index values
