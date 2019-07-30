@@ -126,11 +126,11 @@ for s = 1:length(fname)
     d = ct_trimdata(pd, p);
     
     %IF linfo is present, apply trimming index to linfo, append to output
-    if haslinfo
+    if haslinfo && size(td.linfo,1) >= max(d.cellindex)
         %Filter linfo
         linfo = td.linfo(d.cellindex,:);
         %   Build map to new indices
-        imap = nan(length(d.cellindex),1);          %Initialize 
+        imap = nan(d.cellindex(end),1);          %Initialize 
         imap(d.cellindex) = 1:nnz(d.cellindex);     %Place new index values
         %Adjust linfo references
         for sl = unique(linfo(~isnan(linfo)))'
