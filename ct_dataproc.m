@@ -126,14 +126,15 @@ for s = 1:length(fname)
     d = ct_trimdata(pd, p);
     
     %IF linfo is present, apply trimming index to linfo, append to output
-    if haslinfo && size(td.linfo,1) >= max(d.cellindex)
+    if haslinfo && ~isempty(d.cellindex) && size(td.linfo,1) >= max(d.cellindex)
         %Filter linfo
         linfo = td.linfo(d.cellindex,:);
         %   Build map to new indices
         imap = nan(d.cellindex(end),1);          %Initialize 
         imap(d.cellindex) = 1:nnz(d.cellindex);     %Place new index values
+      
         %Adjust linfo references
-        for sl = unique(linfo(~isnan(linfo)))'
+        for sl = reduce_empties(unique(linfo(~isnan(linfo)))')
             linfo( linfo == sl ) = imap(sl);
         end
         %Append linfo to the output
