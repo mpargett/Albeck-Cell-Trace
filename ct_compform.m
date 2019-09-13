@@ -29,7 +29,7 @@ if ~exist('p','var') || isempty(p)  %IF mapping to compressed form
     if iscell(d);
         p.gi = ~cellfun('isempty', d);
         d = cat(1,d{:}); p.cell = true; 
-    else p.gi = true(size(d));  
+    else p.gi = true(size(d));  p.cell = false;
     end
     
     iv = struct('lin',[],'cel',[]);     %Initialize index vectors
