@@ -24,6 +24,7 @@
 %   packascell  - TRUE to return data with NaNs removed as a cell array
 %                (depricated), FALSE will return each channel as a
 %                NaN-padded  cells x time array 
+%   keeplinfo   - Set to FALSE to discard Lineage info (default: TRUE)
 %   verbose     - TRUE to show all warnings
 
 function [d,p] = ct_dataproc(fname, varargin)
@@ -33,7 +34,8 @@ function [d,p] = ct_dataproc(fname, varargin)
 p = struct( 'savename',{{[]}},  'name',{{'ekar','fra','x','y'}}, ...
     'ind',{{[4,5],3,7,8}}, 'fun',{{[]}},  'tsamp',1,  'pwrat',[],  ...
     'stripidx', false, 'verbose', true, ...
-	'gapmax',2,  'dlengthmin',100,  'startonly',false); %<- For trimming
+	'gapmax',2,  'dlengthmin',100,  'startonly',false, ...
+    'keeplinfo', true); %<- For trimming
 
 %Input option pair parsing:
 nin = length(varargin);     %Check for even number of add'l inputs
@@ -77,7 +79,8 @@ for s = 1:length(fname)
             'Resulting cell (',num2str(s),') will be empty.']); continue;
     end
     %Load data - check first if lineage info is present
-    vchk = whos('-file',fname{s});  haslinfo = any(strcmp({vchk.name},'linfo'));
+    vchk = whos('-file',fname{s});  
+    haslinfo = any(strcmp({vchk.name},'linfo')) && p.keeplinfo;
     if haslinfo     %Collect linfo, if available
             td = load(fname{s}, 'vcorder', 'valcube', 'bkg', 'linfo');
     else    td = load(fname{s}, 'vcorder', 'valcube', 'bkg');
